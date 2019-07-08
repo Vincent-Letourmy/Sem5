@@ -1,0 +1,5 @@
+"Var1","Var2","cost"
+"FALSE","FALSE",0
+"TRUE","FALSE",5
+"FALSE","TRUE",10
+"TRUE","TRUE",0
