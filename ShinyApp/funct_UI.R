@@ -9,7 +9,11 @@ function.sidebar <- function(){
       id = "sidebarmenu",
       menuItem("Initialisation", tabName = "initialisation"),
       menuItem("Target Config",tabName = "targetconfig"),
-      menuItem("Data Quality Config", tabName = "dataqualityconfig"),
+      menuItem("Data Quality Config", tabName = "general", startExpanded = TRUE,
+               menuSubItem("Missing Values", tabName = "dataqualityconfigMissingValues"),
+               menuSubItem("Consisting", tabName = "dataqualityconfigConsisting"),
+               menuSubItem("Fixing", tabName = "dataqualityconfigFixing")
+               ),
       menuItem("Costs Config", tabName = "costsconfig"),
       menuItem("Results", tabName = "results"),
       menuItem("Website", icon = icon("send",lib='glyphicon'), 
@@ -122,8 +126,11 @@ function.body <- function(){
       
       #__________________________________________________ DataQuality Config _______________________________________________________________________________________#
       
+      
+      #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Missing Values °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+      
       tabItem(
-        tabName = "dataqualityconfig",
+        tabName = "dataqualityconfigMissingValues",
         sidebarLayout(
           sidebarPanel(
             h1("Data Quality Config"),
@@ -151,7 +158,7 @@ function.body <- function(){
                     uiOutput("numberRowsWillRemove"),
                     uiOutput("removeNAsbutton")
                 ),
-                uiOutput("fromDataQualityToNextButton")
+                uiOutput("fromMissingValuesToNextButton")
               )
             )
           ),
@@ -175,6 +182,24 @@ function.body <- function(){
       ),
       
       
+      #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Consisting °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+      
+      tabItem(
+        tabName = "dataqualityconfigConsisting",
+        h1("Work in progress"),
+        uiOutput("fromConsistingToNextButton")
+      ),
+      
+      
+      #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Fixing °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+      
+      tabItem(
+        tabName = "dataqualityconfigFixing",
+        h1("Work in progress"),
+        uiOutput("fromFixingToNextButton")
+      ),
+      
+      
       #____________________________________________________ Costs Config _________________________________________________________________________________________#
       
       tabItem(
@@ -183,6 +208,7 @@ function.body <- function(){
           sidebarPanel(
             h1("Costs Config"),
             tags$br(),
+            fluidRow(
             box(width = 12,
                 helpText("Editable table : Choose costs and validate"),
                 rHandsontableOutput("costsTab"),
@@ -192,6 +218,7 @@ function.body <- function(){
             ),
             tags$hr(),
             uiOutput("fromCostsToNextButton")
+            )
           ),
           mainPanel(
             dataTableOutput("tabLoadedCostsConfig")
@@ -217,7 +244,8 @@ function.body <- function(){
                    tags$hr()
                    ,
                    uiOutput("infodataSaved"),
-                   dataTableOutput("tabLoadedResultsSaved")
+                   dataTableOutput("tabLoadedResultsSaved"),
+                   dataTableOutput("matrixBooleanInit")
             ),
             
             column(6,

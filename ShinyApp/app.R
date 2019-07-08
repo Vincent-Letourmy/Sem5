@@ -48,16 +48,6 @@ server <- function(input, output, session) {
     })
     
     
-    
-    output$fromInitToNextButton <- renderUI({
-        if (is.null(v$dataframe_initialisation)) return (NULL)
-        actionButton("fromInitToNextButton","Next step")
-    })
-    observeEvent(input$fromInitToNextButton,{
-        v$dataframe_targetconfig <- v$dataframe_initialisation
-        updateTabItems(session,"sidebarmenu", "targetconfig")
-    })
-    
     output$fromLoadToNextTab <- renderUI({
         if (is.null(v$dataframe_initialisation)) return (NULL)
         actionButton("fromLoadToNextTab", "Next")
@@ -65,6 +55,19 @@ server <- function(input, output, session) {
     observeEvent(input$fromLoadToNextTab, {
         updateTabsetPanel(session, "tabsetInitialisation", "defineNas")
     })
+    
+    
+    output$fromInitToNextButton <- renderUI({
+        if (is.null(v$dataframe_initialisation)) return (NULL)
+        actionButton("fromInitToNextButton","Next step")
+    })
+    observeEvent(input$fromInitToNextButton,{
+        v$dataframe_targetconfig <- v$dataframe_initialisation
+        v$matrixBooloeanMissingValues_initialisation <- function.matrixBoolean(v$dataframe_initialisation)
+        updateTabItems(session,"sidebarmenu", "targetconfig")
+    })
+    
+    
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Selections ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
@@ -175,7 +178,7 @@ server <- function(input, output, session) {
     })
     observeEvent(input$fromTargetToNextButton,{
         v$dataframe_dataqualityconfig <- v$dataframe_dataqualityconfigBis <- v$dataframe_targetconfig
-        updateTabItems(session,"sidebarmenu", "dataqualityconfig")
+        updateTabItems(session,"sidebarmenu", "dataqualityconfigMissingValues")
     })
     
     
@@ -191,6 +194,8 @@ server <- function(input, output, session) {
     
     #__________________________________________________ DataQuality Config _________________________________________________________________________________________________________________________________________#
     
+    
+    #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Missing Values °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
     
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -230,15 +235,14 @@ server <- function(input, output, session) {
     })
     
     
-    
-    output$fromDataQualityToNextButton <- renderUI({
+    output$fromMissingValuesToNextButton <- renderUI({
         if (is.null(v$dataframe_dataqualityconfig)) return (NULL)
-        actionButton("fromDataQualityToNextButton","Next Step")
+        actionButton("fromMissingValuesToNextButton","Next Step")
     })
-    observeEvent(input$fromDataQualityToNextButton,{
+    observeEvent(input$fromMissingValuesToNextButton,{
         v$dataframe_costsconfig <- function.as_factor(v$dataframe_dataqualityconfig)
         v$tabCosts <- function.tabNaiveBayes(v$dataframe_costsconfig, v$columnSelected)
-        updateTabItems(session,"sidebarmenu", "costsconfig")
+        updateTabItems(session,"sidebarmenu", "dataqualityconfigConsisting")
     })
     
     
@@ -274,6 +278,29 @@ server <- function(input, output, session) {
         
     })
     
+    
+    #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Consisting °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+    
+    
+    output$fromConsistingToNextButton <- renderUI({
+        if (is.null(v$dataframe_dataqualityconfig)) return (NULL)
+        actionButton("fromConsistingToNextButton","Next Step")
+    })
+    observeEvent(input$fromConsistingToNextButton,{
+        updateTabItems(session,"sidebarmenu", "dataqualityconfigFixing")
+    })
+    
+    
+    #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Fixing °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+    
+    
+    output$fromFixingToNextButton <- renderUI({
+        if (is.null(v$dataframe_dataqualityconfig)) return (NULL)
+        actionButton("fromFixingToNextButton","Next Step")
+    })
+    observeEvent(input$fromFixingToNextButton,{
+        updateTabItems(session,"sidebarmenu", "costsconfig")
+    })
     
     
     #____________________________________________________ Costs Config __________________________________________________________________________________________________________________________________________#
@@ -375,13 +402,19 @@ server <- function(input, output, session) {
         comp <- function.nbMissingValues(v$dataframe_targetconfig)
         fluidRow(
             h4("Initial table : ", ncol(v$dataframe_targetconfig), " x ", nrow(v$dataframe_targetconfig), "  (columns x rows)"),
-            h4("Missing Values : ", comp)
+            h4("Missing Values : ", comp),
+            h4("Costs of fixing (1 per MV) :", function.nbMV(v$matrixBooloeanMissingValues_initialisation))
         )
     })
     
     
     output$tabLoadedResultsSaved <- renderDataTable(
         v$dataframe_targetconfig,
+        options = list(scrollX = TRUE,pageLength = 14, searching = FALSE)
+    )
+    
+    output$matrixBooleanInit <- renderDataTable(
+        v$matrixBooloeanMissingValues_initialisation,
         options = list(scrollX = TRUE,pageLength = 14, searching = FALSE)
     )
     

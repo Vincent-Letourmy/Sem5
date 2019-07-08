@@ -1,6 +1,7 @@
 function_reactiveValues <- function() {
   reactiveValues(dataframe_initialisation = NULL,
                  dataframe_initialisationBis = NULL,
+                 matrixBooloeanMissingValues_initialisation = NULL,
                  
                  dataframe_targetconfig = NULL,
                  

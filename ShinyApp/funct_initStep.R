@@ -57,3 +57,38 @@ function_parametersBox <- function(){
   })
   
 }
+
+function.matrixBoolean <- function(df){
+  n1 <- nrow(df)
+  n2 <- ncol(df)
+  a <- matrix (rep(0, n1*n2), n1, n2)
+  a <- data.frame(a)
+  names(a) <- names(df)
+  
+  for (col in names(df)) {
+    ligne <- 1
+    for (val in df[,col]) {
+      if (is.na(val) || val == "" || val == "?"){
+        a[ligne,col] <- 1
+      }
+      ligne <- ligne + 1
+    }
+  }
+  return(a)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -64,6 +64,16 @@ function.nbMissingValues <- function(df){
   return(comp)
 }
 
+function.nbMV <- function(df){
+  comp <- 0
+  for (col in df) {
+    for(val in col){
+      if (val == 1) comp = comp + 1
+    }
+  }
+  return(comp)
+}
+
 
 
 
