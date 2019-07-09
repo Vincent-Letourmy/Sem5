@@ -1,5 +1,75 @@
 
+function.as_factor <- function(df){
+  for (i in names(df)) {
+    df[,i] <- as.factor(df[,i])
+  }
+  return(df)
+}
+
+
+# library(e1071)
+
+
 function.CVNaiveBayes <- function(df,col,tabCosts,fold){
+  
+  
+  moy <- 0
+  cost <- 0
+  restab <- data.frame(tabCosts[,-3],cost)
+  
+  for (i in 1:fold) {
+    
+    training.samples <- df[,col] %>% 
+      caret::createDataPartition(p = 0.8, list = FALSE)
+    train.data <- df[training.samples, ]
+    test.data <- df[-training.samples, ]
+    
+    Naive_Bayes_Model=naiveBayes(train.data[,col] ~., data = train.data)
+    NB_Predictions=predict(Naive_Bayes_Model,test.data[,!names(test.data)%in%col])
+    res <- data.frame(table(NB_Predictions,test.data[,col]))
+
+    
+    # Création du tableau de fréquences
+    for (row in row.names(restab)) {
+      restab[row,"cost"] = restab[row,"cost"] + res[row,"Freq"] 
+    }
+    
+    #Création moyenne
+    aux <- 0
+    for(j in row.names(res)){
+      if (as.integer(res[j,c("NB_Predictions")]) == as.integer(res[j,c("Var2")])) {
+        aux[j] = res[j,c("Freq")]
+      }
+    }
+    aux <- as.data.frame(aux)
+    moy[i]<- sum(aux)/sum(res$Freq)*100
+    
+  }
+  
+  # Tableau de fréquences 
+  for (row in row.names(restab)) {
+    restab[row,"cost"] = restab[row,"cost"] / fold
+  }
+  resultats <- list("restab" = restab, "moy" = moy)
+  return(resultats)
+  
+}
+
+
+function.tabNaiveBayes <- function(df, colName){
+  Naive_Bayes_Model=e1071::naiveBayes(df[,colName] ~., data = df)
+  NB_Predictions=predict(Naive_Bayes_Model,df)
+  tab <- data.frame(table(NB_Predictions,df[,colName]))
+  cost <- 0
+  return( data.frame(as.data.frame(tab)[,-3],cost) )
+  
+}
+
+
+# Autre méthode : library(mlr)
+
+
+function.CVNaiveBayesBis <- function(df,col,tabCosts,fold){
   
   colNA <- is.na(df[,col])
   df_noNAs <<- df[!colNA,]
@@ -51,7 +121,7 @@ function.CVNaiveBayes <- function(df,col,tabCosts,fold){
   
 }
 
-function.tabNaiveBayes <- function(df, colName){
+function.tabNaiveBayesBis <- function(df, colName){
   
   col <- df[,c(colName)]
   colNA <- is.na(col)
@@ -69,19 +139,6 @@ function.tabNaiveBayes <- function(df, colName){
   return( data.frame(as.data.frame(tab)[,-3],cost) )
   
 }
-
-function.as_factor <- function(df){
-  for (i in names(df)) {
-    df[,i] <- as.factor(df[,i])
-  }
-  return(df)
-}
-
-
-
-
-
-
 
 
 
