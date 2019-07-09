@@ -44,7 +44,7 @@ server <- function(input, output, session) {
         actionButton("demobutton","Upload a Demo")
     })
     observeEvent(input$demobutton,{
-        v$dataframe_initialisationBis <- v$dataframe_initialisation <- function.loadFile("risk_factors_cervical_cancer_Copie.csv", input$header , input$sep , input$quote)
+        v$dataframe_initialisationBis <- v$dataframe_initialisation <- function.loadFile("risk_factors_cervical_cancer_Original.csv", input$header , input$sep , input$quote)
     })
     
     
@@ -370,6 +370,23 @@ server <- function(input, output, session) {
     })
     
     
+    
+    # Selection Cost Fixing
+    
+    
+    output$costFixingSelection <- renderUI({
+        numericInput("costFixingSelection", label = "Choose a cost of fixing one value", value = 3,min = 0,max = 100,step = 1)
+    })
+    
+    output$fromPredictionTabToNext <- renderUI({
+        if (is.null(v$dataframe_costsconfig) || v$validate == FALSE) return (NULL)
+        actionButton("fromPredictionTabToNext","Next")
+    })
+    observeEvent(input$fromPredictionTabToNext,{
+        updateTabsetPanel(session,"tabsetcosts","fixing")
+    })
+    
+    
     #_______________________________________________________ Compare Results INITIAL / DQ config ____________________________________________________________________________________________#
     
     
@@ -403,7 +420,7 @@ server <- function(input, output, session) {
         fluidRow(
             h4("Initial table : ", ncol(v$dataframe_targetconfig), " x ", nrow(v$dataframe_targetconfig), "  (columns x rows)"),
             h4("Missing Values : ", comp),
-            h4("Costs of fixing (1 per MV) :", function.nbMV(v$matrixBooloeanMissingValues_initialisation))
+            h4("Cost of fixing :", input$costFixingSelection * function.nbMV(v$matrixBooloeanMissingValues_initialisation))
         )
     })
     

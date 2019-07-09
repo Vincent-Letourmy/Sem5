@@ -11,7 +11,7 @@ function.sidebar <- function(){
       menuItem("Target Config",tabName = "targetconfig"),
       menuItem("Data Quality Config", tabName = "general", startExpanded = TRUE,
                menuSubItem("Missing Values", tabName = "dataqualityconfigMissingValues"),
-               menuSubItem("Consisting", tabName = "dataqualityconfigConsisting"),
+               menuSubItem("Consistency", tabName = "dataqualityconfigConsisting"),
                menuSubItem("Fixing", tabName = "dataqualityconfigFixing")
                ),
       menuItem("Costs Config", tabName = "costsconfig"),
@@ -208,16 +208,33 @@ function.body <- function(){
           sidebarPanel(
             h1("Costs Config"),
             tags$br(),
-            fluidRow(
-            box(width = 12,
-                helpText("Editable table : Choose costs and validate"),
-                rHandsontableOutput("costsTab"),
-                tags$br(),
-                uiOutput("validate"),
-                uiOutput("downloadButton")
-            ),
-            tags$hr(),
-            uiOutput("fromCostsToNextButton")
+            tabsetPanel(
+              id = "tabsetcosts",
+              tabPanel(
+                "Prediction",
+                value = "prediction",
+                fluidRow(
+                  box(width = 12,
+                      helpText("Editable table : Choose costs and validate"),
+                      rHandsontableOutput("costsTab"),
+                      tags$br(),
+                      uiOutput("validate"),
+                      uiOutput("downloadButton")
+                  ),
+                  tags$hr(),
+                  uiOutput("fromPredictionTabToNext")
+                )
+              ),
+              tabPanel(
+                "Fixing",
+                value = "fixing",
+                fluidRow(
+                  box(width = 12,
+                      uiOutput("costFixingSelection")
+                    )
+                ),
+                uiOutput("fromCostsToNextButton")
+              )
             )
           ),
           mainPanel(

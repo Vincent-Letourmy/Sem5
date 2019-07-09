@@ -13,12 +13,6 @@ function.loadFile <- function(file, header, sep, quote){
            header = header, 
            sep = sep,
            quote = quote)
-  #for (i in names(df)) {
-   # df[,i] <- as.character(df[,i])
-  #}
-  #for (col in names(df)) {
-   # df[which(df[,col] == "?"), col] <- NA
-  #}
   return(df)
 }
 
@@ -44,7 +38,7 @@ function_parametersBox <- function(){
                             choices = c("Comma" = ",",
                                         "Semicolon" = ';',
                                         "Tab" = "\t"),
-                            selected = ';')
+                            selected = ',')
         ),
         column(6,
                radioButtons("quote", "Quote",
