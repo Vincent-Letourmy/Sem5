@@ -1,0 +1,2 @@
+Age;Color;First beer;Pregnancies;Smokes
+numeric;string;numeric;string;logical

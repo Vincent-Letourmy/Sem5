@@ -1,0 +1,344 @@
+---
+title: "Data Quality report"
+author: "Biomedical Data Science Lab. Universitat Politecnica de Valencia"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+      includes:  
+        in_header: preamble_latex.tex
+header-includes: \usepackage{fancyhdr} \usepackage{graphicx} \usepackage{eurosym}
+  \usepackage{booktabs,xcolor} \pagestyle{fancy} \fancyhf{} \addtolength{\headheight}{1.0cm}
+  \lhead{Data Quality Vector - R version} \rhead{\includegraphics[width=3cm]{marcaUPV.png}}
+  \cfoot{Page \thepage} \fancypagestyle{plain}{\pagestyle{fancy}}
+comment: rmarkdown::render("dqReporter.Rmd", "pdf_document")
+---
+
+
+```{r cache=FALSE, include=FALSE}
+## Set output type for tables
+# outputType = 'latex'
+outputType = 'html'
+
+## Set the Working Directory
+setwd("D:/OneDrive - UPV/software_investigacion/dq_r")
+
+## Run the following commented package installation commands if not already installed
+if (!require('zoo')) install.packages("zoo", repos = "http://cran.us.r-project.org")
+if (!require('rts'))  install.packages("rts", repos = "http://cran.us.r-project.org")
+if (!require('ggplot2'))  install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if (!require('fmsb'))  install.packages("fmsb", repos = "http://cran.us.r-project.org")
+if (!require('kableExtra'))  install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+if (!require('PCAmixdata'))  install.packages("PCAmixdata", repos = "http://cran.us.r-project.org")
+if (!require('fpc'))  install.packages("fpc", repos = "http://cran.us.r-project.org")
+if (!require('dbscan'))  install.packages("dbscan", repos = "http://cran.us.r-project.org")
+if (!require('factoextra'))  install.packages("factoextra", repos = "http://cran.us.r-project.org")
+if (!require('devtools')) install.packages('devtools', repos = "http://cran.us.r-project.org")
+
+## Install packages
+library("zoo")
+library("rts")
+library("ggplot2")
+library("fmsb")
+library("kableExtra")
+library("PCAmixdata")
+library("dbscan")
+library("factoextra")
+devtools::install_github('c5sire/datacheck')
+
+## Source functions
+source("dimCompletenessByDataset.R")
+
+#######
+
+config = read.csv2("data/dqconfig.csv", header=TRUE, na.strings="", stringsAsFactors = FALSE)
+
+datasetname = config$NAME
+datasetFileName = paste("data/",config$DATASETFILE, sep="")
+typesFileName = paste("data/",config$TYPESFILE, sep="")
+rangesFileName = paste("data/",config$RANGESFILE, sep="")
+rulesFileName = paste("data/",config$RULESFILE, sep="")
+dateFormat = config$DATEFORMAT
+dateColumn = config$DATECOLUMN
+hasHeader = config$HASHEADER
+separator = ifelse(is.na(config$SEPARATOR),"",config$SEPARATOR)
+
+dataset = read.csv(datasetFileName, header=hasHeader,na.strings="",sep = separator)
+types = read.csv(typesFileName, header=hasHeader,na.strings="",stringsAsFactors = FALSE,sep = ";")
+ranges = read.csv(rangesFileName, header=hasHeader,na.strings="",sep = ";")
+
+#######
+
+N <-nrow(dataset)
+D <-ncol(dataset)
+
+repositoryDates <-as.Date(dataset[,dateColumn],format=dateFormat)
+dataset = dataset[order(repositoryDates),]
+
+minDate =min(repositoryDates)
+maxDate =max(repositoryDates)
+
+dateBatches =seq(as.Date(minDate),as.Date(maxDate),by = "month")
+zooRepository <-read.zoo(dataset,format = dateFormat,index.column = dateColumn)
+
+# monthly
+resCompletenessByDataset = apply.monthly(zooRepository, FUN=dimCompletenessByDataset)
+
+# all
+N = dim(dataset)[1]
+NAmatrix <- !is.na(dataset)
+sumNAmatrix <-apply(NAmatrix,2,sum)
+completenessByColumn <-round(sumNAmatrix/N*100,2)
+completenessByDataset <- mean(completenessByColumn)
+
+
+#plot(resCompletenessByDataset,xlab = "Date", ylab ="Dataset",main = "Completeness (%)", ylim=c(0,100), cex.lab=0.5)
+
+
+## Create a copy of the dataset converting the variable types to their real types
+datasetTyped = dataset
+
+for (name in names(dataset)) {
+  datasetTyped[[name]] = switch(types[[name]],
+    "na" = dataset[[name]],
+    "string" = as.character(dataset[[name]]),
+    "numeric" = as.numeric(as.character(dataset[[name]])),
+    "date" = as.Date(dataset[[name]], format = '%d/%m/%Y') #ranges[[name]][1]
+  )
+}
+
+
+#######
+
+# Univariate consistency by types and ranges
+
+## Initialize two lists to store the univariate Consistency results by types and ranges
+resultsTypes = as.numeric(dataset[0,])
+names(resultsTypes) = names(dataset)
+resultsRanges = as.numeric(dataset[0,])
+names(resultsRanges) = names(dataset)
+
+## Initialize a list to store the denominator for each variable
+denominators = as.numeric(dataset[0,])
+names(denominators) = names(dataset)
+
+## Calculate the univariate Consistency results at column level
+for (name in names(datasetTyped)) {
+  nonNA = is.finite(datasetTyped[[name]])
+  denominators[[name]] = sum(nonNA)
+  ## Results by type
+  resultsTypes[[name]] = switch(
+    types[[name]],
+    "na" = NA,
+    "string" = 1,
+    "numeric" = sum(sapply(datasetTyped[[name]], is.finite)) /
+     sum(sapply(dataset[[name]], is.finite)),
+    "date" = sum(sapply(
+     as.Date(as.character(dataset[[name]]), format = "%d/%m/%y"), is.finite
+    )) /
+      denominators[[name]]
+  )
+  ## Results by range
+  resultsRanges[[name]] = switch(
+    types[[name]],
+    "na" = NA,
+    "string" = sum(datasetTyped[[name]][nonNA] %in% levels(ranges[[name]])) /
+     denominators[[name]],
+    "numeric" = sum(
+     datasetTyped[[name]][nonNA] >= ifelse(is.finite(ranges[[name]][1]), ranges[[name]][1],-Inf) &
+     datasetTyped[[name]][nonNA] <= ifelse(is.finite(ranges[[name]][2]), ranges[[name]][2], Inf)
+     ) /
+     denominators[[name]],
+    "date" = 1
+  )
+}
+
+
+## Calculate the univariate Consistency results at dataset level
+includedColumns = types %in% c("string","numeric","date")
+totalDenominator = sum(denominators[includedColumns])
+resultsTypesDataset = sum(resultsTypes*denominators,na.rm = TRUE)/totalDenominator
+resultsRangesDataset = sum(resultsRanges*denominators,na.rm = TRUE)/totalDenominator
+
+
+# Multivariate consistency by rules
+
+
+## Read the multivariate rules file
+rules = datacheck::read_rules(rulesFileName)
+
+## Evaluate the rules on the dataset
+profile = datacheck::datadict_profile(datasetTyped, rules)
+resRules = profile$checks
+
+## Calculate the multivariate Consistency results
+denominator = nrow(datasetTyped)*nrow(rules)
+resultsRulesDataset = 1-sum(resRules$Error.sum)/denominator
+
+
+##############
+
+# Correctness 
+
+##############
+
+
+quantidx = types %in% c("numeric")
+qualiidx = types %in% c("string")
+
+mca = PCAmix(X.quanti = datasetTyped[,quantidx], X.quali = datasetTyped[,qualiidx], ndim = 3, rename.level=TRUE, graph = FALSE)
+
+coords = mca$ind$coord
+
+# minPts = 3
+minPts = max(3,round(N/1000))
+# dbscan::kNNdistplot(data, k =  minPts)
+# abline(h = 0.15, lty = 2)
+
+MAX_INDS = 20000
+LIMITED_SAMPLE = FALSE
+
+if (N>MAX_INDS){
+  coords = coords[sort(sample.int(N,MAX_INDS)),]
+  LIMITED_SAMPLE = TRUE
+} 
+
+distm = dist(coords, method = "euclidean", diag = FALSE, upper = FALSE)
+eps = median(distm)
+
+resDbscan = dbscan(coords, eps/3, minPts)
+
+resCorrectnessMultiv = 100*(1-sum(resDbscan$cluster == 0)/N)
+
+# Univariate correctness
+
+boxplots <- vector("list", sum(quantidx))
+corrUniv = rep(NaN,length(boxplots))
+
+quantidxwhich = which(quantidx)
+
+for (i in 1:length(boxplots)){
+  
+  boxplots[[i]] = boxplot(datasetTyped[,quantidxwhich[i]], plot = FALSE, horizontal = TRUE)
+  corrUniv[i] = 1-length(boxplots[[i]]$out)/boxplots[[i]]$n
+}
+
+resCorrectnessUniv = 100*mean(corrUniv)
+
+resCorrectness = mean(c(resCorrectnessMultiv,resCorrectnessUniv))
+
+# plot(mca,choice="ind",main="Scores")
+```
+
+
+
+#Overall DQ analysis results of the `r datasetname` dataset
+
+The dataset contains `r N` rows and `r D` variables. The following metrics were obtained: Completeness `r sprintf("%.2f", completenessByDataset)`, Consistency `r sprintf("%.2f", 100*mean(c(resultsTypesDataset,resultsRangesDataset,resultsRulesDataset)))` and Correctness `r sprintf("%.2f", resCorrectness)`.
+
+```{r echo=FALSE, cache=FALSE, fig.height = 4, fig.width = 5, fig.align='center'}
+results = c(completenessByDataset,100*mean(c(resultsTypesDataset,resultsRangesDataset,resultsRulesDataset)),resCorrectness)
+names(results) = c("Completeness","Consistency","Correctness")
+barplot(results, ylab="%", main="DQ dimensions at Dataset level", ylim=c(0,100))
+```
+
+#Completeness detailed results
+
+```{r echo=FALSE, cache=FALSE, results="asis"}
+
+  knitr::kable(data.frame(colnames(dataset), completenessByColumn), outputType, caption = "Completeness results by column", booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+
+```
+
+
+#Consistency detailed results
+
+The following metrics were obtained for the detailed Consistency analysis: Consistency by types `r sprintf("%.2f", 100*resultsTypesDataset)`, Consistency by ranges `r sprintf("%.2f", 100*resultsRangesDataset)` and Consistency by multivariate rules `r sprintf("%.2f", 100*resultsRulesDataset)`. The detailed results for the multivariate Consistency analysis are shown next.
+
+```{r echo=FALSE, fig.align='center', fig.height=5, fig.width=5, cache=FALSE, paged.print=FALSE}
+data=as.data.frame(t(c(resultsTypesDataset,resultsRangesDataset,resultsRulesDataset)))
+names(data) = c("Types","Ranges","Rules")
+data=rbind(rep(1,3) , rep(0,3) , data)
+
+radarchart( data, title="Consistency results by types, ranges and rules", axistype=1 , 
+#custom polygon
+pcol=rgb(0.2,0.5,0.5,0.9) , pfcol=rgb(0.2,0.5,0.5,0.5) , plwd=4 , 
+#custom the grid
+cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,100,25), cglwd=0.8,
+#custom labels
+vlcex=0.8 
+)
+
+
+```
+
+
+<!-- ```{r echo=FALSE, cache=FALSE, results="asis"} -->
+
+<!--   knitr::kable(data.frame(colnames(dataset), resultsRanges), "latex", caption = "Consistency ranges results by column", booktabs = T) %>% -->
+<!--   kable_styling(latex_options = "striped") -->
+
+<!-- ``` -->
+
+
+```{r echo=FALSE, cache=FALSE, results="asis"}
+# resRules$Error.list <- gsub(",",", ",resRules$Error.list)
+# knitr::kable(resRules[,c(-4,-5)], "latex", caption = "Results of multivariate Consistency rules") %>%
+# knitr::kable(resRules[,c(-4,-5,-7)], "latex", caption = "Results of multivariate Consistency rules") %>% 
+  knitr::kable(resRules[,c(3,4,6)], outputType, caption = "Results of multivariate Consistency rules", booktabs = T) %>%
+  # knitr::kable(resRules[,c(3,4,6)], "html", caption = "Results of multivariate Consistency rules") %>%
+  column_spec(2, width = "5cm") %>%
+  column_spec(1, width = "5cm") %>%
+  kable_styling(latex_options = "striped")
+
+# print(xtable::xtable(data, caption = "Table with xtable"),
+#  type = "html", html.table.attributes = "border=0")
+
+# stargazer::stargazer(resRules, type = "html",
+#  title = "Table with stargazer")
+
+# knitr::kable(shortSummary, "latex", caption = "Summary of data") %>%
+#   kable_styling(latex_options = "scale_down")
+
+
+```
+
+\clearpage
+
+#Correctness detailed results
+
+The correctness score of `r sprintf("%.2f", resCorrectness)` is the average of the scores for univariate correctness (`r sprintf("%.2f", resCorrectnessUniv)`) and multivariate correctness (`r sprintf("%.2f", resCorrectnessMultiv)`). Univariate correctness was calculated for numerical variables based on the percentage of outliers based on the box plot results, as follows.
+
+```{r echo=FALSE, fig.height=3, message=FALSE, warning=FALSE, cache=FALSE, paged.print=FALSE, results="asis"}
+# corrTable = data.frame(colnames(dataset)[quantidx], corrUniv, length(boxplots[[i]]$out))
+corrTable = data.frame(colnames(dataset)[quantidx], corrUniv)
+names(corrTable) = c('Variable name','Correctness (%)')
+knitr::kable(corrTable, outputType, caption = "Correctness results by column (numerical variables)", booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+```{r echo=FALSE, fig.height=3, message=FALSE, warning=FALSE, cache=FALSE, paged.print=FALSE, results="asis"}
+
+for (i in 1:length(boxplots)){
+  b <- boxplot(datasetTyped[,quantidxwhich[i]], plot = TRUE, horizontal = TRUE)
+  title(sprintf("Boxplot of variable %s",colnames(dataset)[quantidxwhich[i]]))
+  cat('\n\n')
+}
+# grid.arrange()
+```
+
+\newpage
+
+Multivariate correctness was calculated based on the percentage of outliers found on the 3 first PCA components of the dataset (including numerical and categorical data based on dummy coding) after applying a clustering method. In the next figure, outliers, if any, account as possibly incorrect data.`r if(LIMITED_SAMPLE) sprintf(" Note: due to the computer memory capacity for the correctness analysis sample was limited to %s randomly selected individuals.",MAX_INDS)` The minimum number of individuals to conform a cluster was set to `r paste(minPts,sprintf(ifelse(3>=round(N/1000),'','(0.1%% of the sample size)')))`.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, cache=FALSE, paged.print=FALSE, results="asis"}
+resDbscan2 = resDbscan
+if(any(resDbscan2$cluster==0))
+  resDbscan2$cluster[resDbscan2$cluster==0] = 'Outliers'
+fviz_cluster(resDbscan2, data = coords[,1:2], stand = FALSE,
+             ellipse = FALSE, show.clust.cent = FALSE,
+             geom = "point",palette = "jco", ggtheme = theme_classic())
+
+```

@@ -10,6 +10,13 @@ function_reactiveValues <- function() {
                  dataframe_dataqualityconfig = NULL,
                  dataframe_dataqualityconfigBis = NULL,
                  
+                 dataframe_dataqualityconfigConsistency = NULL,
+                 matrixBooloeanMissingValues_Consistency = NULL,
+                 df_types = NULL,
+                 df_ranges = NULL,
+                 
+                 dataframe_dataqualityconfigFixing = NULL,
+                 
                  dataframe_costsconfig = NULL,
                  
                  dataframe_results = NULL,
@@ -28,6 +35,7 @@ function_reactiveValues <- function() {
                  accuracyTab = NULL,
                  resMissingValuesBarChart = NULL,
                  
+                 # Initialisation df to compare
                  accuracySaved = NULL,
                  accuracyTabSaved = NULL,
                  resultDataSaved = NULL

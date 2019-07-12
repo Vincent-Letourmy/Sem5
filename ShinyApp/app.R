@@ -125,7 +125,7 @@ server <- function(input, output, session) {
     
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Selections ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Selections ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$selectcolumn <- renderUI(
@@ -148,7 +148,7 @@ server <- function(input, output, session) {
     })
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$nextButton <- renderUI({
@@ -182,7 +182,7 @@ server <- function(input, output, session) {
     })
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     output$tabLoadedTargetConfig <- renderDataTable(
         v$dataframe_targetconfig,
@@ -198,7 +198,7 @@ server <- function(input, output, session) {
     #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Missing Values °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$nextPanelrows <- renderUI({
@@ -240,19 +240,18 @@ server <- function(input, output, session) {
         actionButton("fromMissingValuesToNextButton","Next Step")
     })
     observeEvent(input$fromMissingValuesToNextButton,{
-        v$dataframe_costsconfig <- function.as_factor(v$dataframe_dataqualityconfig)
-        v$tabCosts <- function.tabNaiveBayes(v$dataframe_costsconfig, v$columnSelected)
+        v$dataframe_dataqualityconfigConsistency <- v$dataframe_dataqualityconfig
         updateTabItems(session,"sidebarmenu", "dataqualityconfigConsisting")
     })
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Selections ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Selections ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     output$pourcentageSelection <- renderUI(
         sliderInput("pourcentageSelection","Pourcentage of missing values max", 0,100,15)
     )
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$tabLoadedDQconfig <- renderDataTable(
@@ -279,7 +278,10 @@ server <- function(input, output, session) {
     })
     
     
-    #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Consisting °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+    #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Consistency °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
+    
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$fromConsistingToNextButton <- renderUI({
@@ -287,9 +289,85 @@ server <- function(input, output, session) {
         actionButton("fromConsistingToNextButton","Next Step")
     })
     observeEvent(input$fromConsistingToNextButton,{
+        v$dataframe_dataqualityconfigFixing <- v$dataframe_dataqualityconfigConsistency
         updateTabItems(session,"sidebarmenu", "dataqualityconfigFixing")
     })
     
+    output$selectionfileTypes <- renderUI({
+        function.fileInputTypes()
+    })
+    
+    output$typesButton <- renderUI({
+        actionButton("typesButton", "Next")
+    })
+    observeEvent(input$typesButton,{
+        print("bon types")
+        infileTypes <- input$fileCSVTypes
+        if (is.null(infileTypes)) return (NULL)
+        v$df_types <- function.loadFile(infileTypes$datapath, input$headerTypes , input$sepTypes , input$quoteTypes)
+        
+        updateTabsetPanel(session,"tabsetConsistency", "rangesconfig")
+    })
+    
+    
+    output$selectionfileRanges <- renderUI({
+        function.fileInputRanges()
+    })
+    
+    output$rangesButton <- renderUI({
+        actionButton("rangesButton", "Next")
+    })
+    observeEvent(input$rangesButton,{
+        print("bonjour ranges")
+        infileRanges <- input$fileCSVRanges
+        if (is.null(infileRanges)) return (NULL)
+        v$df_ranges <- function.loadFile(infileRanges$datapath, input$headerRanges , input$sepRanges , input$quoteRanges)
+        
+        updateTabsetPanel(session,"tabsetConsistency", "removeConsistency")
+    })
+    
+    output$parametersboxTypes <- function_parametersBoxTypes()
+    
+    output$parametersboxRanges <- function_parametersBoxRanges()
+    
+    
+    
+    output$removeInconsistentbutton <- renderUI(
+        actionButton("removeInconsistentbutton", "Remove")
+    )
+    observeEvent(input$removeInconsistentbutton, {
+        v$dataframe_dataqualityconfigConsistency <- function.removeConsistency(v$dataframe_dataqualityconfigConsistency, v$matrixBooloeanMissingValues_Consistency)
+    })
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+    
+    output$tabLoadedDQconfigConsistency <- renderDataTable(
+        v$dataframe_dataqualityconfigConsistency,
+        options = list(scrollX = TRUE,pageLength = 14, searching = FALSE)
+    )
+    
+    output$numberRowsInconsistentWillRemove <- renderUI({
+        v$matrixBooloeanMissingValues_Consistency <- function.matrixBooleanConsistency(v$dataframe_dataqualityconfigConsistency)
+        nbInco <- function.nbMV(v$matrixBooloeanMissingValues_Consistency)
+        paste("Nb of inconsistent values = ", nbInco)
+    })
+    
+    
+    output$tabmatrix <- renderDataTable(
+        v$matrixBooloeanMissingValues_Consistency,
+        options = list(scrollX = TRUE,pageLength = 14, searching = FALSE)
+    )
+    
+    output$typesFile <- renderDataTable(
+        v$df_types,
+        options = list(scrollX = TRUE,pageLength = 5, searching = FALSE)
+    )
+    
+    output$rangesFile <- renderDataTable(
+        v$df_ranges,
+        options = list(scrollX = TRUE,pageLength = 10, searching = FALSE)
+    )
     
     #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Fixing °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
     
@@ -299,6 +377,8 @@ server <- function(input, output, session) {
         actionButton("fromFixingToNextButton","Next Step")
     })
     observeEvent(input$fromFixingToNextButton,{
+        v$dataframe_costsconfig <- function.as_factor(v$dataframe_dataqualityconfigFixing)
+        v$tabCosts <- function.tabNaiveBayes(v$dataframe_costsconfig, v$columnSelected)
         updateTabItems(session,"sidebarmenu", "costsconfig")
     })
     
@@ -306,7 +386,7 @@ server <- function(input, output, session) {
     #____________________________________________________ Costs Config __________________________________________________________________________________________________________________________________________#
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Renders ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$tabLoadedCostsConfig <- renderDataTable(
@@ -324,7 +404,7 @@ server <- function(input, output, session) {
     output$downloadData <- function.downloadFile(v$tabCosts)
     
     
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     
     output$downloadButton <- renderUI({

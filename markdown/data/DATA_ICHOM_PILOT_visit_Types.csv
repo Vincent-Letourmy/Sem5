@@ -1,0 +1,3 @@
+"PATIENT ID";"VISIT ID";"SEX";"DATEofBIRTH";"DEATHDATE";"VISIT TYPE";"VISIT TYPE";"ARIDATE";"DISDATE";"CHF";"AFIB";"PRIORMI";"SMOKE";"ALCOHOL";"HOSPADM";"HOSPAPP";"HYPERTEN";"DIABMIELITUS";"ECHOPERF";"PHARMATYPE4";"PHARMATYPE5";"PHARMATYPE6";"PHARMATYPE7";"HEIGHT";"WEIGHT"
+na;na;string;date;date;string;string;date;date;string;string;string;string;string;numeric;numeric;string;string;string;string;string;string;string;numeric;numeric
+

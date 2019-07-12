@@ -133,7 +133,7 @@ function.body <- function(){
         tabName = "dataqualityconfigMissingValues",
         sidebarLayout(
           sidebarPanel(
-            h1("Data Quality Config"),
+            h1("Data Quality Config - Missing Values"),
             tags$hr(),
             tabsetPanel(
               id = "tabsetdataqualityconfig",
@@ -186,8 +186,54 @@ function.body <- function(){
       
       tabItem(
         tabName = "dataqualityconfigConsisting",
-        h1("Work in progress"),
-        uiOutput("fromConsistingToNextButton")
+        sidebarLayout(
+          sidebarPanel(
+            h1("Data Quality Config - Consistency"),
+            
+            tabsetPanel(
+              id = "tabsetConsistency",
+              tabPanel(
+                "Types config",
+                value = "typesconfig",
+                fluidRow(
+                  box(width = 12,
+                      uiOutput("selectionfileTypes"),
+                      uiOutput("parametersboxTypes"),
+                      uiOutput("typesButton")
+                  )
+                )
+              ),
+              tabPanel(
+                "Ranges config",
+                value = "rangesconfig",
+                fluidRow(
+                  box(width = 12,
+                      uiOutput("selectionfileRanges"),
+                      uiOutput("parametersboxRanges"),
+                      uiOutput("rangesButton")
+                  )
+                )
+              ),
+              tabPanel(
+                "Remove rows",
+                value = "removeConsistency",
+                fluidRow(
+                  box(width = 12,
+                      h4("Do you want to remove each row where there is an inconsistent value ?"),
+                      uiOutput("numberRowsInconsistentWillRemove"),
+                      uiOutput("removeInconsistentbutton")
+                  )
+                )
+              )
+            )
+          ),
+          mainPanel(
+            dataTableOutput("typesFile"),
+            dataTableOutput("rangesFile"),
+            dataTableOutput("tabLoadedDQconfigConsistency"),
+            dataTableOutput("tabmatrix")
+          )
+        )
       ),
       
       
