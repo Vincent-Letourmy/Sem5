@@ -301,7 +301,6 @@ server <- function(input, output, session) {
         actionButton("typesButton", "Next")
     })
     observeEvent(input$typesButton,{
-        print("bon types")
         infileTypes <- input$fileCSVTypes
         if (is.null(infileTypes)) return (NULL)
         v$df_types <- function.loadFile(infileTypes$datapath, input$headerTypes , input$sepTypes , input$quoteTypes)
@@ -318,18 +317,13 @@ server <- function(input, output, session) {
         actionButton("rangesButton", "Next")
     })
     observeEvent(input$rangesButton,{
-        print("bonjour ranges")
         infileRanges <- input$fileCSVRanges
         if (is.null(infileRanges)) return (NULL)
         v$df_ranges <- function.loadFile(infileRanges$datapath, input$headerRanges , input$sepRanges , input$quoteRanges)
         
         updateTabsetPanel(session,"tabsetConsistency", "removeConsistency")
     })
-    
-    output$parametersboxTypes <- function_parametersBoxTypes()
-    
-    output$parametersboxRanges <- function_parametersBoxRanges()
-    
+
     
     
     output$removeInconsistentbutton <- renderUI(
@@ -368,6 +362,11 @@ server <- function(input, output, session) {
         v$df_ranges,
         options = list(scrollX = TRUE,pageLength = 10, searching = FALSE)
     )
+    
+    output$parametersboxTypes <- function_parametersBoxTypes()
+    
+    output$parametersboxRanges <- function_parametersBoxRanges()
+    
     
     #°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°° Fixing °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°#
     

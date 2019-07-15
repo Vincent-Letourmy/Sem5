@@ -31,6 +31,7 @@ function.matrixBooleanConsistency <- function(df){
   a <- matrix (rep(0, n1*n2), n1, n2)
   a <- data.frame(a)
   names(a) <- names(df)
+  rownames(a) <- rownames(df)
   
   for (col in names(df)) {
     
